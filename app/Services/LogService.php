@@ -23,6 +23,7 @@ class LogService
         $user->generate();
 //        Mail::to($user->email)->send(new VerificationEmail($user,$user->code));
 
+
         return ['status' => true, 'message' => 'Email verified successfully','code' => $user->code];
 
     }

@@ -20,7 +20,7 @@ class Resend2EmailService
             return response()->json(['message' => 'Email is already verified.'], 400);
         }
 
-        $lastAttempt = Carbon::parse($user->delay);
+        $lastAttempt = Carbon::parse($user->expire);
         $attempts = $user->verification_code_attempts;
 
         if ($lastAttempt && $lastAttempt->diffInMinutes(now()) < 10 && $attempts >= 2) {
@@ -32,7 +32,7 @@ class Resend2EmailService
         }
 
         $user->verification_code_attempts += 1;
-        $user->delay = now();
+        $user->expire = now();
         $user->code = Str::random(6);
         $user->save();
 

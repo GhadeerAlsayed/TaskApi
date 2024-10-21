@@ -12,7 +12,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+         $schedule->command('app:delete-condition')->monthly();
+        $schedule->command('app:delete-all-expired-tokens')->daily();
     }
 
     /**
@@ -20,8 +21,12 @@ class Kernel extends ConsoleKernel
      */
     protected function commands(): void
     {
+
+
         $this->load(__DIR__.'/Commands');
 
         require base_path('routes/console.php');
     }
+
+
 }

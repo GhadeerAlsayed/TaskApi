@@ -26,7 +26,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'profile_photo',
         'code',
-        'delay',
+        'expire',
         'verification_code_attempts'
     ];
 
@@ -53,13 +53,13 @@ class User extends Authenticatable implements MustVerifyEmail
     public function generate(){
 //        $this->timestamps = false;
         $this->code = str()->random(6);;
-        $this->delay = now()->addMinutes(5);
+        $this->expire = now()->addMinutes(5);
         $this->save();
     }
     public function resetcode(){
 //        $this->timestamps = false;
         $this->code = null;
-        $this->delay = null;
+        $this->expire = null;
         $this->save();
     }
 }

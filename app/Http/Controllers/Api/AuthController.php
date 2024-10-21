@@ -13,7 +13,9 @@ use App\Models\User;
 use App\Services\ForgetService;
 use App\Services\LogService;
 use App\Services\Resend2EmailService;
+use App\Services\ResetPasswordService;
 use App\Services\UserService;
+use App\Services\Verify2FACodeService;
 use App\Services\VerifyService;
 use App\Traits\ApiResponse;
 use App\Traits\Upload;
@@ -29,7 +31,13 @@ class AuthController extends Controller
     use ApiResponse;
     use Upload;
 
-    public function __construct(private UserService $userService,private LogService $logService,private VerifyService $verifyService,private ForgetService $forgetService,private Resend2EmailService $resend2EmailService){}
+    public function __construct(private UserService $userService,
+                                private LogService $logService,
+                                private VerifyService $verifyService,
+                                private Verify2FACodeService $verify2faService,
+                                private ForgetService $forgetService,
+                                private ResetPasswordService $resetPasswordService,
+                                private Resend2EmailService $resend2EmailService){}
 
 //       ---------------------------------------------------Registration
 
@@ -67,21 +75,12 @@ class AuthController extends Controller
         return response()->json(['message' => $result['message'],'code' => $result['code']]);
     }
 
-    public function verify2FACode(Request $request)
+    public function verify2FACode(verifyRequest $request)
     {
-        $request->validate(['code' => 'required']);
+            $user = Auth::user();
 
-        $user = Auth::user();
+            return $this->verify2faService->verify2FACode($user->email, $request->code);
 
-        $user = User::where('email', $user->email)->first();
-
-        if (!$user && $user->code !== $request->code) {
-            return response()->json(['message' => 'Invalid 2FA code.'], 403);
-        }
-
-        $token = $user->createToken('MyApiToken')->plainTextToken;
-
-        return response()->json(['token' => $token]);
     }
 
     public function logout()
@@ -99,7 +98,7 @@ class AuthController extends Controller
     {
         $user = $request->user();
         $user->currentAccessToken()->delete();
-        $newToken = $user->createToken('MyApiToken')->plainTextToken;
+        $newToken = $user->createToken('MyApiToken',['*'], now()->addMinutes(20))->plainTextToken;
 
         return response()->json(['message' => 'Token refreshed successfully', 'token' => $newToken], 201);
 
@@ -122,50 +121,24 @@ class AuthController extends Controller
 
         Mail::to($user->email)->send(new VerificationEmail($user ,$user->code));;
 
-        return response()->json(['message' => 'تم إرسال رمز التحقق!'], 200);
+        return response()->json(['message' => 'Verification code sent!'], 200);
     }
 
 //    -----------------------------------------------------Forgot password.
 
-    public function sendResetLink(Request $request)
+    public function sendResetLink(ForgotPasswordRequest $request)
     {
-        $request->validate(['email' => 'required|email']);
 
-        $user = User::where('email', $request->email)->first();
+            $response = $this->forgetService->forgotPassword($request->email);
 
-        if (!$user) {
-            return response()->json(['message' => 'User not found.'], 404);
-        }
-        $user->generate();
-
-
-        Mail::to($user->email)->send(new VerificationEmail($user ,$user->code));
-
-        return response()->json(['message' => 'Reset code sent.'], 200);
+            return response()->json(['message' => $response['message']], $response['status']);
     }
 
-    public function resetPassword(Request $request)
+    public function resetPassword(ResetPasswordRequest $request)
     {
-        $request->validate([
-            'code' => 'required',
-            'email' => 'required|email',
-            'password' => 'required|confirmed|min:8',
-        ]);
+        $response = $this->resetPasswordService->resetpassword($request->email, $request->code, $request->password);
 
-        $user = User::where('email', $request->email)
-            ->where('code', $request->code)
-            ->first();
-
-        if (!$user) {
-            return response()->json(['message' => 'Invalid code.'], 400);
-        }
-
-        $user->password = Hash::make($request->password);
-        $user->code = null;
-        $user->save();
-
-        return response()->json(['message' => 'Password has been reset.'], 200);
+        return response()->json(['message' => $response['message']], $response['status']);
     }
-
 
 }

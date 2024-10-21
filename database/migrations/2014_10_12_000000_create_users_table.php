@@ -21,7 +21,7 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('code')->nullable();
-            $table->dateTime('delay')->nullable();
+            $table->dateTime('expire')->nullable();
             $table->integer('verification_code_attempts')->default(0);
             $table->rememberToken();
             $table->timestamps();

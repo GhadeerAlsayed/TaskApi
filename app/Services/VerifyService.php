@@ -15,7 +15,7 @@ class VerifyService
         $user = Auth::user();
         $user = User::where('email', $user->email)->where('code',$code)->first();
 
-        if ($user && $user->delay < now()) {
+        if ($user && $user->expire < now()) {
             return ['status' => false, 'message' => 'Invalid or expired verification code'];
         }
         $user->email_verified_at = true;
